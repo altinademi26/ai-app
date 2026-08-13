@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus AI — Your Groq Assistant</title>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.09);
+    --accent: #f55036;
+    --accent2: #f7b731;
+    --text: #eef0f4;
+    --muted: #8a90a0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0.35; pointer-events: none; z-index: 0; }
+  .orb-1 { width: 480px; height: 480px; background: #f55036; top: -160px; left: -120px; }
+  .orb-2 { width: 420px; height: 420px; background: #f7b731; bottom: -140px; right: -100px; }
+  .orb-3 { width: 300px; height: 300px; background: #7c5cff; top: 40%; left: 60%; opacity: 0.22; }
+
+  .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 30px 20px 30px; }
+
+  header { text-align: center; margin-bottom: 22px; }
+  .logo {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 28px; font-weight: 800; letter-spacing: 1px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .logo span { font-size: 32px; -webkit-text-fill-color: initial; }
+  header p { color: var(--muted); margin-top: 6px; font-size: 14px; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 20px;
+  }
+  .tab {
+    background: var(--panel); border: 1px solid var(--border);
+    color: var(--muted); padding: 10px 18px; border-radius: 999px;
+    font-size: 14px; cursor: pointer; transition: all 0.2s; font-family: inherit;
+  }
+  .tab:hover { color: var(--text); transform: translateY(-1px); }
+  .tab.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; border-color: transparent; font-weight: 600;
+  }
+
+  .panel { display: none; animation: pop 0.25s ease; }
+  .panel.active { display: block; }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+
+  /* ── Chat ── */
+  .chat-card { display: flex; flex-direction: column; height: 60vh; min-height: 420px; }
+  .chat-top {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; font-size: 14px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #34d399; box-shadow: 0 0 10px #34d399; }
+  .chat-top small { color: var(--muted); }
+  #messages { flex: 1; overflow-y: auto; padding: 20px 18px; display: flex; flex-direction: column; gap: 14px; }
+  #messages::-webkit-scrollbar { width: 6px; }
+  #messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+  .msg { max-width: 78%; padding: 12px 16px; border-radius: 16px; font-size: 15px; line-height: 1.55; white-space: pre-wrap; word-wrap: break-word; animation: pop 0.25s ease; }
+  .msg.user { align-self: flex-end; background: linear-gradient(135deg, #f55036, #e0442c); border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: rgba(255,255,255,0.07); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .msg.bot.thinking { color: var(--muted); font-style: italic; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 18px 12px; }
+  .chip {
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--text); padding: 7px 13px; border-radius: 999px;
+    font-size: 13px; cursor: pointer; transition: all 0.2s; font-family: inherit;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--accent2); transform: translateY(-1px); }
+  .input-row { display: flex; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--border); }
+  #prompt {
+    flex: 1; background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border); border-radius: 14px;
+    color: var(--text); padding: 12px 16px; font-size: 15px;
+    outline: none; font-family: inherit; transition: border-color 0.2s;
+  }
+  #prompt:focus { border-color: var(--accent); }
+  .btn-send {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 14px; width: 48px;
+    font-size: 20px; cursor: pointer; color: #fff;
+    transition: transform 0.15s, opacity 0.2s;
+  }
+  .btn-send:hover { transform: scale(1.06); }
+  .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Shared form elements ── */
+  .padded { padding: 26px; }
+  .field-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 1px; }
+  textarea, input[type=text], select {
+    width: 100%; background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border); border-radius: 14px;
+    color: var(--text); padding: 12px 16px; font-size: 15px;
+    outline: none; font-family: inherit; transition: border-color 0.2s;
+  }
+  textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
+  textarea:focus, input[type=text]:focus, select:focus { border-color: var(--accent); }
+  select option { background: #161a24; color: var(--text); }
+  .row { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  .row > * { flex: 1; min-width: 120px; }
+  .btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 14px; color: #fff;
+    padding: 13px 26px; font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: transform 0.15s, opacity 0.2s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.ghost {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    color: var(--text); font-weight: 400;
+  }
+  .result-box {
+    margin-top: 18px; background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; font-size: 15px; line-height: 1.6; display: none;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+  .result-box.show { display: block; animation: pop 0.25s ease; }
+  .spinner {
+    width: 34px; height: 34px; border: 3px solid rgba(255,255,255,0.15);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 20px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .center-text { text-align: center; color: var(--muted); font-size: 14px; padding: 10px; }
+
+  /* ── Image ── */
+  #imgResult { text-align: center; display: none; }
+  #imgResult.show { display: block; }
+  #genImg {
+    max-width: 100%; border-radius: 16px; border: 1px solid var(--border);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+
+  /* ── Voice ── */
+  .mic-wrap { text-align: center; padding: 10px 0 4px; }
+  #micBtn {
+    width: 96px; height: 96px; border-radius: 50%;
+    border: none; cursor: pointer; font-size: 40px;
+    background: rgba(255,255,255,0.07);
+    border: 2px solid var(--border);
+    color: var(--text); transition: all 0.2s;
+  }
+  #micBtn:hover { transform: scale(1.05); }
+  #micBtn.recording {
+    background: #e0442c; border-color: #e0442c; color: #fff;
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(224,68,44,0.5); } 100% { box-shadow: 0 0 0 26px rgba(224,68,44,0); } }
+  #micStatus { text-align: center; color: var(--muted); font-size: 14px; margin-top: 12px; }
+  #timer { font-size: 20px; font-weight: 700; text-align: center; margin-top: 8px; color: var(--accent2); min-height: 28px; }
+
+  /* ── Quiz ── */
+  #quizArea { display: none; }
+  #quizArea.show { display: block; }
+  .q-block { margin-bottom: 22px; padding: 18px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 16px; }
+  .q-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .opt { display: block; margin: 8px 0; cursor: pointer; }
+  .opt input { margin-right: 10px; accent-color: var(--accent); }
+  .opt.correct { color: #34d399; font-weight: 600; }
+  .opt.wrong { color: #f87171; }
+  #quizScore { font-size: 22px; font-weight: 800; text-align: center; margin-top: 16px; }
+  #quizScore .good { color: #34d399; }
+  #quizScore .bad { color: #f87171; }
+
+  footer { text-align: center; margin-top: 22px; color: var(--muted); font-size: 12.5px; }
+  footer b { color: var(--accent2); }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #161a24; border: 1px solid var(--border); color: var(--text);
+    padding: 10px 22px; border-radius: 999px; font-size: 14px;
+    transition: transform 0.3s; z-index: 50; pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="wrap">
+    <header>
+      <div class="logo"><span>&#x1F680;</span>NEXUS AI</div>
+      <p>5 tools &#8226; 1 key &#8226; Groq LPU speed</p>
+    </header>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="chat">&#x1F4AC; Chat</button>
+      <button class="tab" data-tab="image">&#x1F3A8; Image</button>
+      <button class="tab" data-tab="voice">&#x1F3A4; Voice</button>
+      <button class="tab" data-tab="quiz">&#x1F4DD; Quiz</button>
+      <button class="tab" data-tab="translate">&#x1F310; Translate</button>
+    </nav>
+
+    <!-- ── CHAT ── -->
+    <section class="panel active" id="panel-chat">
+      <div class="card chat-card">
+        <div class="chat-top">
+          <span class="dot"></span>
+          <div><b>Nexus</b><br><small>llama-3.3-70b &#8226; online</small></div>
+        </div>
+        <div id="messages">
+          <div class="msg bot">Hey! I'm Nexus on Groq LPU chips. Ask me anything. &#x26A1;</div>
+        </div>
+        <div class="chips">
+          <button class="chip">Write a short poem</button>
+          <button class="chip">Explain quantum computing simply</button>
+          <button class="chip">Help me plan a trip to Tokyo</button>
+          <button class="chip">Write Python code for a to-do app</button>
+        </div>
+        <div class="input-row">
+          <input id="prompt" type="text" placeholder="Ask Nexus anything..." autocomplete="off">
+          <button id="send" class="btn-send" title="Send">&#x27A4;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── IMAGE ── -->
+    <section class="panel" id="panel-image">
+      <div class="card padded">
+        <label class="field-label">Describe your image</label>
+        <input type="text" id="imgPrompt" placeholder="A golden eagle flying over mountains at sunset, cinematic lighting...">
+        <div class="row">
+          <select id="imgRatio">
+            <option value="1024,1024">Square 1:1</option>
+            <option value="1280,720">Landscape 16:9</option>
+            <option value="720,1280">Portrait 9:16</option>
+          </select>
+          <button class="btn" id="imgBtn">&#x2728; Generate</button>
+        </div>
+        <div id="imgLoading" class="spinner" style="display:none"></div>
+        <div id="imgResult">
+          <img id="genImg" alt="Generated image">
+          <div class="row" style="justify-content:center">
+            <a class="btn ghost" id="imgDownload" href="#" target="_blank" style="text-decoration:none">&#x2B07; Open full size</a>
+            <button class="btn ghost" id="imgRegen">&#x1F504; Regenerate</button>
+          </div>
+        </div>
+        <p class="center-text" style="margin-top:12px">Free images via Pollinations &#x2022; no extra key needed</p>
+      </div>
+    </section>
+
+    <!-- ── VOICE ── -->
+    <section class="panel" id="panel-voice">
+      <div class="card padded">
+        <label class="field-label">AI voice to text</label>
+        <div class="mic-wrap">
+          <button id="micBtn" title="Record">&#x1F3A4;</button>
+        </div>
+        <div id="timer"></div>
+        <p id="micStatus">Click the mic and speak &#x2014; Groq Whisper transcribes it.</p>
+        <div id="transcript" class="result-box"></div>
+        <div class="row" style="justify-content:center">
+          <button class="btn ghost" id="copyTranscript">&#x1F4CB; Copy</button>
+          <button class="btn ghost" id="clearTranscript">&#x1F5D1; Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── QUIZ ── -->
+    <section class="panel" id="panel-quiz">
+      <div class="card padded">
+        <label class="field-label">Generate a quiz about...</label>
+        <input type="text" id="quizTopic" placeholder="e.g. World War II, Python, Space, Football...">
+        <div class="row">
+          <select id="quizCount">
+            <option value="3">3 questions</option>
+            <option value="5" selected>5 questions</option>
+            <option value="10">10 questions</option>
+          </select>
+          <select id="quizDiff">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+          <button class="btn" id="quizBtn">&#x1F4DD; Generate Quiz</button>
+        </div>
+        <div id="quizLoading" class="spinner" style="display:none"></div>
+        <div id="quizArea">
+          <h3 id="quizTitle" style="margin-bottom:16px; font-size:20px"></h3>
+          <div id="quizQuestions"></div>
+          <div id="quizScore"></div>
+          <div class="row" style="justify-content:center">
+            <button class="btn" id="quizSubmit">&#x2705; Check Answers</button>
+            <button class="btn ghost" id="quizNew">&#x1F504; New Quiz</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TRANSLATE ── -->
+    <section class="panel" id="panel-translate">
+      <div class="card padded">
+        <label class="field-label">Text to translate</label>
+        <textarea id="trText" placeholder="Type or paste any text here..."></textarea>
+        <div class="row">
+          <select id="trFrom"></select>
+          <select id="trTo"></select>
+          <button class="btn" id="trBtn">&#x1F310; Translate</button>
+        </div>
+        <div id="trOutput" class="result-box"></div>
+        <div class="row" style="justify-content:center">
+          <button class="btn ghost" id="copyTr">&#x1F4CB; Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <footer>Built with <b>Groq</b> &#x26A1; + Pollinations &#x1F3A8;</footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var GROQ_KEY = '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';
+  var GROQ_CHAT = 'https://api.groq.com/openai/v1/chat/completions';
+  var GROQ_STT = 'https://api.groq.com/openai/v1/audio/transcriptions';
+  var MODEL = 'llama-3.3-70b-versatile';
+  var MAX_CTX = 24;
+
+  function $(id) { return document.getElementById(id); }
+
+  /* ── Toast ── */
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast('Copied!'); }, function () { legacyCopy(text); });
+    } else { legacyCopy(text); }
+  }
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); toast('Copied!'); } catch (e) { toast('Copy failed'); }
+    document.body.removeChild(ta);
+  }
+
+  /* ── Tabs ── */
+  var tabs = document.querySelectorAll('.tab');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].addEventListener('click', function () {
+      var name = this.getAttribute('data-tab');
+      for (var j = 0; j < tabs.length; j++) tabs[j].classList.remove('active');
+      this.classList.add('active');
+      var panels = document.querySelectorAll('.panel');
+      for (var k = 0; k < panels.length; k++) panels[k].classList.remove('active');
+      $('panel-' + name).classList.add('active');
+    });
+  }
+
+  /* ═══════════ CHAT ═══════════ */
+  var messages = $('messages');
+  var promptInput = $('prompt');
+  var sendBtn = $('send');
+  var history = [
+    { role: 'system', content: 'You are Nexus, a friendly, helpful AI assistant powered by Groq. Be concise but thorough. Plain text only. Keep responses under 400 words unless asked for more.' }
+  ];
+
+  function addMsg(role, text) {
+    var div = document.createElement('div');
+    div.className = 'msg ' + role;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  function ask(text) {
+    if (!text) return;
+    addMsg('user', text);
+    history.push({ role: 'user', content: text });
+
+    var botDiv = addMsg('bot', 'Thinking\u2026');
+    botDiv.classList.add('thinking');
+    sendBtn.disabled = true;
+
+    fetch(GROQ_CHAT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
+      body: JSON.stringify({ model: MODEL, messages: history.slice(-MAX_CTX), stream: true, temperature: 0.7 })
+    })
+    .then(function (res) {
+      if (!res.ok) {
+        return res.text().then(function (t) { throw new Error('API ' + res.status + ': ' + t.slice(0, 200)); });
+      }
+      var reader = res.body.getReader();
+      var decoder = new TextDecoder();
+      var full = '';
+      botDiv.classList.remove('thinking');
+      botDiv.textContent = '';
+
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) {
+            history.push({ role: 'assistant', content: full });
+            sendBtn.disabled = false;
+            promptInput.focus();
+            return;
+          }
+          var chunk = decoder.decode(r.value, { stream: true });
+          var lines = chunk.split('\n');
+          for (var i = 0; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (line.indexOf('data: ') !== 0) continue;
+            var data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              var json = JSON.parse(data);
+              var delta = json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content;
+              if (delta) {
+                full += delta;
+                botDiv.textContent = full;
+                messages.scrollTop = messages.scrollHeight;
+              }
+            } catch (e) {}
+          }
+          return pump();
+        });
+      }
+      return pump();
+    })
+    .catch(function (err) {
+      botDiv.classList.remove('thinking');
+      botDiv.textContent = 'Error: ' + err.message;
+      sendBtn.disabled = false;
+      console.error('Groq error:', err);
+    });
+  }
+
+  sendBtn.addEventListener('click', function () {
+    var v = promptInput.value.trim();
+    if (!v) return;
+    promptInput.value = '';
+    ask(v);
+  });
+  promptInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendBtn.click(); });
+  var chips = document.querySelectorAll('.chip');
+  for (var c = 0; c < chips.length; c++) {
+    chips[c].addEventListener('click', function () { ask(this.textContent); });
+  }
+
+  /* ═══════════ IMAGE ═══════════ */
+  var imgPrompt = $('imgPrompt');
+  var imgBtn = $('imgBtn');
+  var imgLoading = $('imgLoading');
+  var imgResult = $('imgResult');
+  var genImg = $('genImg');
+  var imgDownload = $('imgDownload');
+  var imgRegen = $('imgRegen');
+
+  function generateImage() {
+    var p = imgPrompt.value.trim();
+    if (!p) { toast('Describe the image first'); return; }
+    imgBtn.disabled = true;
+    imgLoading.style.display = 'block';
+    imgResult.classList.remove('show');
+    var parts = $('imgRatio').value.split(',');
+    var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(p) +
+      '?width=' + parts[0] + '&height=' + parts[1] + '&nologo=true&seed=' + Math.floor(Math.random() * 99999);
+    genImg.src = url;
+    imgDownload.href = url;
+    genImg.onload = function () {
+      imgLoading.style.display = 'none';
+      imgResult.classList.add('show');
+      imgBtn.disabled = false;
+    };
+    genImg.onerror = function () {
+      imgLoading.style.display = 'none';
+      imgBtn.disabled = false;
+      toast('Image failed — try again');
+    };
+  }
+  imgBtn.addEventListener('click', generateImage);
+  imgRegen.addEventListener('click', generateImage);
+  imgPrompt.addEventListener('keydown', function (e) { if (e.key === 'Enter') generateImage(); });
+
+  /* ═══════════ VOICE ═══════════ */
+  var micBtn = $('micBtn');
+  var micStatus = $('micStatus');
+  var timerEl = $('timer');
+  var transcriptBox = $('transcript');
+  var recorder = null;
+  var chunks = [];
+  var recTimer = null;
+  var seconds = 0;
+
+  micBtn.addEventListener('click', function () {
+    if (recorder && recorder.state === 'recording') { stopRecording(); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      micStatus.textContent = 'Mic not supported in this browser.';
+      return;
+    }
+    micStatus.textContent = 'Requesting microphone...';
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function (stream) {
+        var mime = 'audio/webm';
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported('audio/mp4')) mime = 'audio/mp4';
+        recorder = new MediaRecorder(stream, { mimeType: mime });
+        chunks = [];
+        recorder.ondataavailable = function (e) { if (e.data.size > 0) chunks.push(e.data); };
+        recorder.onstop = function () {
+          stream.getTracks().forEach(function (t) { t.stop(); });
+          transcribe();
+        };
+        recorder.start();
+        micBtn.classList.add('recording');
+        micBtn.textContent = '\u23F9';
+        micStatus.textContent = 'Recording... click to stop';
+        seconds = 0;
+        timerEl.textContent = '0:00';
+        recTimer = setInterval(function () {
+          seconds++;
+          timerEl.textContent = Math.floor(seconds / 60) + ':' + ('0' + (seconds % 60)).slice(-2);
+        }, 1000);
+      })
+      .catch(function () {
+        micStatus.textContent = 'Mic access denied. Allow mic permission and try again.';
+      });
+  });
+
+  function stopRecording() {
+    if (recorder) recorder.stop();
+    clearInterval(recTimer);
+    micBtn.classList.remove('recording');
+    micBtn.textContent = '\uD83C\uDFA4';
+    micStatus.textContent = 'Transcribing with Groq Whisper...';
+    timerEl.textContent = '';
+  }
+
+  function transcribe() {
+    var blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+    var fd = new FormData();
+    fd.append('file', blob, 'audio.webm');
+    fd.append('model', 'whisper-large-v3');
+    fd.append('response_format', 'json');
+    fetch(GROQ_STT, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + GROQ_KEY },
+      body: fd
+    })
+    .then(function (res) {
+      if (!res.ok) return res.text().then(function (t) { throw new Error('API ' + res.status + ': ' + t.slice(0, 150)); });
+      return res.json();
+    })
+    .then(function (json) {
+      transcriptBox.textContent = json.text || '(nothing detected)';
+      transcriptBox.classList.add('show');
+      micStatus.textContent = 'Done! Speak again or copy the text.';
+    })
+    .catch(function (err) {
+      micStatus.textContent = 'Error: ' + err.message;
+      console.error('STT error:', err);
+    });
+  }
+
+  $('copyTranscript').addEventListener('click', function () {
+    if (!transcriptBox.textContent) { toast('Nothing to copy'); return; }
+    copyText(transcriptBox.textContent);
+  });
+  $('clearTranscript').addEventListener('click', function () {
+    transcriptBox.textContent = '';
+    transcriptBox.classList.remove('show');
+    micStatus.textContent = 'Click the mic and speak — Groq Whisper transcribes it.';
+  });
+
+  /* ═══════════ QUIZ ═══════════ */
+  var quizBtn = $('quizBtn');
+  var quizLoading = $('quizLoading');
+  var quizArea = $('quizArea');
+  var quizQuestions = $('quizQuestions');
+  var quizScore = $('quizScore');
+  var quizTitle = $('quizTitle');
+  var quizData = null;
+  var quizAnswered = false;
+
+  quizBtn.addEventListener('click', function () {
+    var topic = $('quizTopic').value.trim();
+    if (!topic) { toast('Enter a quiz topic'); return; }
+    var count = parseInt($('quizCount').value, 10);
+    var diff = $('quizDiff').value;
+    quizBtn.disabled = true;
+    quizLoading.style.display = 'block';
+    quizArea.classList.remove('show');
+    quizScore.textContent = '';
+    quizAnswered = false;
+
+    var sys = 'You are a quiz generator. Create a quiz with exactly ' + count +
+      ' multiple-choice questions about: ' + topic + '. Difficulty: ' + diff +
+      '. Each question has exactly 4 options and one correct answer index (0-3). Return ONLY valid JSON, no markdown, in exactly this shape: {"title":"...","questions":[{"question":"...","options":["...","...","...","..."],"answer":0}]}';
+
+    fetch(GROQ_CHAT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{ role: 'system', content: sys }, { role: 'user', content: 'Topic: ' + topic }],
+        response_format: { type: 'json_object' },
+        temperature: 0.8
+      })
+    })
+    .then(function (res) {
+      if (!res.ok) return res.text().then(function (t) { throw new Error('API ' + res.status + ': ' + t.slice(0, 150)); });
+      return res.json();
+    })
+    .then(function (json) {
+      var content = json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
+      quizData = JSON.parse(content);
+      renderQuiz();
+    })
+    .catch(function (err) {
+      toast('Quiz failed: ' + err.message);
+      console.error('Quiz error:', err);
+    })
+    .finally(function () {
+      quizBtn.disabled = false;
+      quizLoading.style.display = 'none';
+    });
+  });
+
+  function renderQuiz() {
+    quizQuestions.innerHTML = '';
+    quizTitle.textContent = quizData.title || 'Quiz';
+    for (var i = 0; i < quizData.questions.length; i++) {
+      var q = quizData.questions[i];
+      var block = document.createElement('div');
+      block.className = 'q-block';
+      var h = document.createElement('div');
+      h.className = 'q-title';
+      h.textContent = (i + 1) + '. ' + q.question;
+      block.appendChild(h);
+      for (var o = 0; o < q.options.length; o++) {
+        var lab = document.createElement('label');
+        lab.className = 'opt';
+        var rad = document.createElement('input');
+        rad.type = 'radio';
+        rad.name = 'q' + i;
+        rad.value = String(o);
+        lab.appendChild(rad);
+        lab.appendChild(document.createTextNode(' ' + q.options[o]));
+        block.appendChild(lab);
+      }
+      quizQuestions.appendChild(block);
+    }
+    quizArea.classList.add('show');
+    quizArea.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  $('quizSubmit').addEventListener('click', function () {
+    if (!quizData) return;
+    if (quizAnswered) { toast('Already checked — start a new quiz'); return; }
+    var correct = 0;
+    var total = quizData.questions.length;
+    for (var i = 0; i < total; i++) {
+      var picked = document.querySelector('input[name="q' + i + '"]:checked');
+      var opts = quizQuestions.querySelectorAll('.q-block')[i].querySelectorAll('.opt');
+      var ans = quizData.questions[i].answer;
+      opts[ans].classList.add('correct');
+      if (picked && parseInt(picked.value, 10) === ans) {
+        correct++;
+      } else if (picked) {
+        opts[parseInt(picked.value, 10)].classList.add('wrong');
+      }
+      var radios = opts;
+      for (var r = 0; r < radios.length; r++) radios[r].querySelector('input').disabled = true;
+    }
+    var pct = Math.round((correct / total) * 100);
+    var label = pct >= 80 ? ' \u2B50 Excellent!' : (pct >= 50 ? ' \uD83D\uDC4D Not bad!' : ' \uD83D\uDCA1 Keep learning!');
+    quizScore.innerHTML = 'Score: ' + correct + '/' + total + ' (' + pct + '%)' +
+      '<span class="' + (pct >= 50 ? 'good' : 'bad') + '">' + label + '</span>';
+    quizAnswered = true;
+  });
+
+  $('quizNew').addEventListener('click', function () {
+    quizArea.classList.remove('show');
+    quizScore.textContent = '';
+    quizData = null;
+    quizAnswered = false;
+    $('quizTopic').focus();
+  });
+
+  /* ═══════════ TRANSLATE ═══════════ */
+  var LANGS = [
+    ['auto', 'Auto detect'], ['en', 'English'], ['sq', 'Albanian'], ['ar', 'Arabic'],
+    ['bg', 'Bulgarian'], ['zh', 'Chinese'], ['hr', 'Croatian'], ['cs', 'Czech'],
+    ['da', 'Danish'], ['nl', 'Dutch'], ['fi', 'Finnish'], ['fr', 'French'],
+    ['de', 'German'], ['el', 'Greek'], ['he', 'Hebrew'], ['hi', 'Hindi'],
+    ['hu', 'Hungarian'], ['id', 'Indonesian'], ['it', 'Italian'], ['ja', 'Japanese'],
+    ['ko', 'Korean'], ['ms', 'Malay'], ['no', 'Norwegian'], ['fa', 'Persian'],
+    ['pl', 'Polish'], ['pt', 'Portuguese'], ['ro', 'Romanian'], ['ru', 'Russian'],
+    ['sr', 'Serbian'], ['es', 'Spanish'], ['sw', 'Swahili'], ['sv', 'Swedish'],
+    ['th', 'Thai'], ['tr', 'Turkish'], ['uk', 'Ukrainian'], ['vi', 'Vietnamese']
+  ];
+  var trFrom = $('trFrom');
+  var trTo = $('trTo');
+  for (var l = 0; l < LANGS.length; l++) {
+    var o1 = document.createElement('option');
+    o1.value = LANGS[l][0];
+    o1.textContent = LANGS[l][1];
+    trFrom.appendChild(o1);
+    if (LANGS[l][0] !== 'auto') {
+      var o2 = document.createElement('option');
+      o2.value = LANGS[l][0];
+      o2.textContent = LANGS[l][1];
+      trTo.appendChild(o2);
+    }
+  }
+  trTo.value = 'sq';
+
+  function langName(code) {
+    for (var n = 0; n < LANGS.length; n++) {
+      if (LANGS[n][0] === code) return LANGS[n][1];
+    }
+    return code;
+  }
+
+  var trBtn = $('trBtn');
+  var trOutput = $('trOutput');
+  trBtn.addEventListener('click', function () {
+    var text = $('trText').value.trim();
+    if (!text) { toast('Type some text to translate'); return; }
+    var from = trFrom.value;
+    var to = trTo.value;
+    if (from !== 'auto' && from === to) { toast('Same language!'); return; }
+    trBtn.disabled = true;
+    trOutput.classList.remove('show');
+    trOutput.textContent = 'Translating...';
+
+    var sys = 'You are a professional translator. Translate the following text from ' +
+      (from === 'auto' ? 'its detected language' : langName(from)) +
+      ' to ' + langName(to) + '. Output ONLY the translation. Nothing else. Keep tone, punctuation and formatting.';
+
+    fetch(GROQ_CHAT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{ role: 'system', content: sys }, { role: 'user', content: text }],
+        temperature: 0.3
+      })
+    })
+    .then(function (res) {
+      if (!res.ok) return res.text().then(function (t) { throw new Error('API ' + res.status + ': ' + t.slice(0, 150)); });
+      return res.json();
+    })
+    .then(function (json) {
+      trOutput.textContent = json.choices[0].message.content;
+      trOutput.classList.add('show');
+    })
+    .catch(function (err) {
+      trOutput.textContent = 'Error: ' + err.message;
+      trOutput.classList.add('show');
+      console.error('Translate error:', err);
+    })
+    .finally(function () { trBtn.disabled = false; });
+  });
+
+  $('copyTr').addEventListener('click', function () {
+    if (!trOutput.textContent || trOutput.textContent === 'Translating...') { toast('Nothing to copy'); return; }
+    copyText(trOutput.textContent);
+  });
+})();
+</script>
+</body>
+</html>
