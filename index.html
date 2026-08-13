@@ -118,6 +118,21 @@
   textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
   textarea:focus, input[type=text]:focus, select:focus { border-color: var(--accent); }
   select option { background: #161a24; color: var(--text); }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px; padding: 0; border: none;
+    background: rgba(255,255,255,0.12); border-radius: 3px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: 2px solid #fff; cursor: pointer; transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type=range]::-moz-range-thumb {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); border: 2px solid #fff; cursor: pointer;
+  }
   .row { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
   .row > * { flex: 1; min-width: 120px; }
   .btn {
@@ -288,11 +303,10 @@
         <label class="field-label">Generate a quiz about...</label>
         <input type="text" id="quizTopic" placeholder="e.g. World War II, Python, Space, Football...">
         <div class="row">
-          <select id="quizCount">
-            <option value="3">3 questions</option>
-            <option value="5" selected>5 questions</option>
-            <option value="10">10 questions</option>
-          </select>
+          <div class="slider-wrap">
+            <label class="field-label" style="margin-bottom:4px">Questions: <span id="quizCountLabel" style="color:var(--accent2);font-weight:700">5</span></label>
+            <input type="range" id="quizCount" min="1" max="20" value="5" oninput="document.getElementById('quizCountLabel').textContent=this.value">
+          </div>
           <select id="quizDiff">
             <option value="easy">Easy</option>
             <option value="medium" selected>Medium</option>
