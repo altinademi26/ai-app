@@ -1,6 +1,7 @@
-/* QR share button — encodes the current page URL so it works wherever the site is hosted. */
+/* QR share button — encodes the public site URL so scans always open the live site. */
 (function () {
   'use strict';
+  var PUBLIC_URL = 'https://ai-app-one-kappa.vercel.app/';
   var fab = document.getElementById('qrFab');
   var card = document.getElementById('qrCard');
   var img = document.getElementById('qrImg');
@@ -12,7 +13,7 @@
     card.classList.toggle('show');
     if (card.classList.contains('show') && !fab.dataset.gen) {
       fab.dataset.gen = '1';
-      var url = window.location.href;
+      var url = PUBLIC_URL || window.location.href;
       img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=4&data=' + encodeURIComponent(url);
       img.onerror = function () {
         img.alt = 'QR failed - check internet';
