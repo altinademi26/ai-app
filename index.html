@@ -211,6 +211,29 @@
     transition: transform 0.3s; z-index: 50; pointer-events: none;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── QR share ── */
+  .qr-fab {
+    position: fixed; bottom: 22px; right: 22px; z-index: 40;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; cursor: pointer; font-size: 26px; color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5); transition: transform 0.2s;
+  }
+  .qr-fab:hover { transform: scale(1.1) rotate(8deg); }
+  .qr-card {
+    position: fixed; bottom: 90px; right: 22px; z-index: 40;
+    background: #fff; border-radius: 18px; padding: 18px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+    opacity: 0; transform: translateY(14px) scale(0.95);
+    pointer-events: none; transition: all 0.25s;
+  }
+  .qr-card.show { opacity: 1; transform: none; pointer-events: auto; }
+  .qr-card img { width: 200px; height: 200px; border-radius: 8px; }
+  .qr-card .btn { width: 100%; }
+  .qr-url { color: #333; font-size: 12.5px; max-width: 200px; word-break: break-all; text-decoration: none; text-align: center; }
+  .qr-url:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -345,6 +368,13 @@
     </section>
 
     <footer>Built with <b>Groq</b> &#x26A1; + Pollinations &#x1F3A8;</footer>
+  </div>
+
+  <button id="qrFab" class="qr-fab" title="Scan to open site">&#x1F4F1;</button>
+  <div id="qrCard" class="qr-card">
+    <img id="qrImg" alt="QR code">
+    <a id="qrUrl" class="qr-url" href="#" target="_blank"></a>
+    <button id="qrCopy" class="btn ghost">&#x1F4CB; Copy link</button>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -810,5 +840,6 @@
   });
 })();
 </script>
+<script src="qr.js"></script>
 </body>
 </html>
