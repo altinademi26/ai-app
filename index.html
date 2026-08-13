@@ -40,9 +40,7 @@
   header p { color: var(--muted); margin-top: 6px; font-size: 14px; }
 
   /* ── Tabs ── */
-  .tabs {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 20px;
-  }
+  .tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 20px; }
   .tab {
     background: var(--panel); border: 1px solid var(--border);
     color: var(--muted); padding: 10px 18px; border-radius: 999px;
@@ -82,7 +80,21 @@
   .msg.user { align-self: flex-end; background: linear-gradient(135deg, #f55036, #e0442c); border-bottom-right-radius: 4px; }
   .msg.bot { align-self: flex-start; background: rgba(255,255,255,0.07); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
   .msg.bot.thinking { color: var(--muted); font-style: italic; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 18px 12px; }
+
+  .plugin-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 10px 18px 2px; }
+  .plugin-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: 2px; }
+  .plugin {
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--muted); padding: 6px 12px; border-radius: 999px;
+    font-size: 12.5px; cursor: pointer; transition: all 0.2s; font-family: inherit;
+  }
+  .plugin:hover { color: var(--text); }
+  .plugin.on {
+    border-color: var(--accent2); color: var(--accent2);
+    background: rgba(247,183,49,0.12); font-weight: 600;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 18px 12px; }
   .chip {
     background: rgba(255,255,255,0.05); border: 1px solid var(--border);
     color: var(--text); padding: 7px 13px; border-radius: 999px;
@@ -162,19 +174,37 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .center-text { text-align: center; color: var(--muted); font-size: 14px; padding: 10px; }
 
-  /* ── Image ── */
-  #imgResult { text-align: center; display: none; }
-  #imgResult.show { display: block; }
-  #genImg {
-    max-width: 100%; border-radius: 16px; border: 1px solid var(--border);
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  /* ── Photos ── */
+  .cam-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .cam-box {
+    flex: 1.3; min-width: 240px; background: #000;
+    border-radius: 14px; overflow: hidden; position: relative;
+    aspect-ratio: 16/10; border: 1px solid var(--border);
   }
+  .cam-box video { width: 100%; height: 100%; object-fit: cover; display: none; }
+  .cam-box video.live { display: block; }
+  .cam-actions { flex: 1; min-width: 210px; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+  .gallery {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+    gap: 10px; margin-top: 16px;
+  }
+  .thumb {
+    position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border); animation: pop 0.2s ease;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .del {
+    position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+    border-radius: 50%; background: rgba(0,0,0,0.65); color: #fff;
+    border: none; cursor: pointer; font-size: 12px; line-height: 1;
+  }
+  .thumb .del:hover { background: #e0442c; }
 
   /* ── Voice ── */
   .mic-wrap { text-align: center; padding: 10px 0 4px; }
   #micBtn {
     width: 96px; height: 96px; border-radius: 50%;
-    border: none; cursor: pointer; font-size: 40px;
+    cursor: pointer; font-size: 40px;
     background: rgba(255,255,255,0.07);
     border: 2px solid var(--border);
     color: var(--text); transition: all 0.2s;
@@ -249,7 +279,7 @@
 
     <nav class="tabs" id="tabs">
       <button class="tab active" data-tab="chat">&#x1F4AC; Chat</button>
-      <button class="tab" data-tab="image">&#x1F3A8; Image</button>
+      <button class="tab" data-tab="photos">&#x1F4F7; Photos</button>
       <button class="tab" data-tab="voice">&#x1F3A4; Voice</button>
       <button class="tab" data-tab="quiz">&#x1F4DD; Quiz</button>
       <button class="tab" data-tab="translate">&#x1F310; Translate</button>
@@ -265,6 +295,13 @@
         <div id="messages">
           <div class="msg bot">Hey! I'm Nexus on Groq LPU chips. Ask me anything. &#x26A1;</div>
         </div>
+        <div class="plugin-strip">
+          <span class="plugin-label">Plugins:</span>
+          <button class="plugin" data-p="calc">&#x1F9EE; Calculator</button>
+          <button class="plugin" data-p="sum">&#x1F4DD; Summarizer</button>
+          <button class="plugin" data-p="code">&#x1F4BB; Coder</button>
+          <button class="plugin" data-p="tr">&#x1F310; Translator</button>
+        </div>
         <div class="chips">
           <button class="chip">Write a short poem</button>
           <button class="chip">Explain quantum computing simply</button>
@@ -278,28 +315,32 @@
       </div>
     </section>
 
-    <!-- ── IMAGE ── -->
-    <section class="panel" id="panel-image">
+    <!-- ── PHOTOS ── -->
+    <section class="panel" id="panel-photos">
       <div class="card padded">
-        <label class="field-label">Describe your image</label>
-        <input type="text" id="imgPrompt" placeholder="A golden eagle flying over mountains at sunset, cinematic lighting...">
-        <div class="row">
-          <select id="imgRatio">
-            <option value="1024,1024">Square 1:1</option>
-            <option value="1280,720">Landscape 16:9</option>
-            <option value="720,1280">Portrait 9:16</option>
-          </select>
-          <button class="btn" id="imgBtn">&#x2728; Generate</button>
-        </div>
-        <div id="imgLoading" class="spinner" style="display:none"></div>
-        <div id="imgResult">
-          <img id="genImg" alt="Generated image">
-          <div class="row" style="justify-content:center">
-            <a class="btn ghost" id="imgDownload" href="#" target="_blank" style="text-decoration:none">&#x2B07; Open full size</a>
-            <button class="btn ghost" id="imgRegen">&#x1F504; Regenerate</button>
+        <label class="field-label">Take or add photos (max 15)</label>
+        <div class="cam-row">
+          <div class="cam-box">
+            <video id="camVideo" autoplay playsinline muted></video>
+            <p id="camHint" class="center-text">Camera off &#x2014; press Start camera</p>
+          </div>
+          <div class="cam-actions">
+            <button class="btn" id="camStart">&#x1F4F7; Start camera</button>
+            <button class="btn" id="camCapture" disabled>&#x23EC; Capture</button>
+            <button class="btn ghost" id="uploadBtn">&#x1F5C2; Add photos</button>
+            <input type="file" id="fileInput" accept="image/*" multiple hidden>
+            <p id="photoCount" class="center-text" style="padding:0">0 / 15</p>
+            <button class="btn ghost" id="clearPhotos">&#x1F5D1; Clear all</button>
           </div>
         </div>
-        <p class="center-text" style="margin-top:12px">Free images via Pollinations &#x2022; no extra key needed</p>
+        <div id="gallery" class="gallery"></div>
+        <label class="field-label" style="margin-top:20px">Ask AI about your photos</label>
+        <input type="text" id="photoPrompt" placeholder="e.g. What is this? Identify everything you see">
+        <div class="row">
+          <button class="btn" id="analyzeBtn">&#x1F50D; Analyze photos</button>
+        </div>
+        <div id="photoLoading" class="spinner" style="display:none"></div>
+        <div id="photoResult" class="result-box"></div>
       </div>
     </section>
 
@@ -367,7 +408,7 @@
       </div>
     </section>
 
-    <footer>Built with <b>Groq</b> &#x26A1; + Pollinations &#x1F3A8;</footer>
+    <footer>Built with <b>Groq</b> &#x26A1;</footer>
   </div>
 
   <button id="qrFab" class="qr-fab" title="Scan to open site">&#x1F4F1;</button>
@@ -387,7 +428,11 @@
   var GROQ_CHAT = 'https://api.groq.com/openai/v1/chat/completions';
   var GROQ_STT = 'https://api.groq.com/openai/v1/audio/transcriptions';
   var MODEL = 'llama-3.3-70b-versatile';
+  var VISION_URL = 'https://openrouter.ai/api/v1/chat/completions';
+  var VISION_KEY = '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';
+  var VISION_MODEL = 'google/gemini-2.5-flash';
   var MAX_CTX = 24;
+  var MAX_PHOTOS = 15;
 
   function $(id) { return document.getElementById(id); }
 
@@ -436,6 +481,21 @@
     { role: 'system', content: 'You are Nexus, a friendly, helpful AI assistant powered by Groq. Be concise but thorough. Plain text only. Keep responses under 400 words unless asked for more.' }
   ];
 
+  var PLUGINS = {
+    calc: 'Calculator plugin active: when asked to compute, solve step by step and give the exact numeric result.',
+    sum: 'Summarizer plugin active: summarize any long text into short bullet points when asked.',
+    code: 'Coder plugin active: write clean, complete, working code with brief comments when asked.',
+    tr: 'Translator plugin active: translate text to the requested language when asked, output only the translation.'
+  };
+  var activePlugins = {};
+
+  function buildPluginSystem() {
+    var names = Object.keys(activePlugins).filter(function (k) { return activePlugins[k]; });
+    if (!names.length) return null;
+    var parts = names.map(function (k) { return PLUGINS[k]; });
+    return { role: 'system', content: 'Active plugins: ' + parts.join(' ') };
+  }
+
   function addMsg(role, text) {
     var div = document.createElement('div');
     div.className = 'msg ' + role;
@@ -454,10 +514,14 @@
     botDiv.classList.add('thinking');
     sendBtn.disabled = true;
 
+    var msgs = history.slice(-MAX_CTX);
+    var pluginSys = buildPluginSystem();
+    if (pluginSys) msgs = [pluginSys].concat(msgs);
+
     fetch(GROQ_CHAT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
-      body: JSON.stringify({ model: MODEL, messages: history.slice(-MAX_CTX), stream: true, temperature: 0.7 })
+      body: JSON.stringify({ model: MODEL, messages: msgs, stream: true, temperature: 0.7 })
     })
     .then(function (res) {
       if (!res.ok) {
@@ -519,40 +583,192 @@
     chips[c].addEventListener('click', function () { ask(this.textContent); });
   }
 
-  /* ═══════════ IMAGE ═══════════ */
-  var imgPrompt = $('imgPrompt');
-  var imgBtn = $('imgBtn');
-  var imgLoading = $('imgLoading');
-  var imgResult = $('imgResult');
-  var genImg = $('genImg');
-  var imgDownload = $('imgDownload');
-  var imgRegen = $('imgRegen');
-
-  function generateImage() {
-    var p = imgPrompt.value.trim();
-    if (!p) { toast('Describe the image first'); return; }
-    imgBtn.disabled = true;
-    imgLoading.style.display = 'block';
-    imgResult.classList.remove('show');
-    var parts = $('imgRatio').value.split(',');
-    var url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(p) +
-      '?width=' + parts[0] + '&height=' + parts[1] + '&nologo=true&seed=' + Math.floor(Math.random() * 99999);
-    genImg.src = url;
-    imgDownload.href = url;
-    genImg.onload = function () {
-      imgLoading.style.display = 'none';
-      imgResult.classList.add('show');
-      imgBtn.disabled = false;
-    };
-    genImg.onerror = function () {
-      imgLoading.style.display = 'none';
-      imgBtn.disabled = false;
-      toast('Image failed — try again');
-    };
+  var plugins = document.querySelectorAll('.plugin');
+  for (var p = 0; p < plugins.length; p++) {
+    plugins[p].addEventListener('click', function () {
+      var key = this.getAttribute('data-p');
+      activePlugins[key] = !activePlugins[key];
+      this.classList.toggle('on', activePlugins[key]);
+      var n = Object.keys(activePlugins).filter(function (k) { return activePlugins[k]; }).length;
+      toast(n ? (n + ' plugin' + (n > 1 ? 's' : '') + ' on') : 'Plugins off');
+    });
   }
-  imgBtn.addEventListener('click', generateImage);
-  imgRegen.addEventListener('click', generateImage);
-  imgPrompt.addEventListener('keydown', function (e) { if (e.key === 'Enter') generateImage(); });
+
+  /* ═══════════ PHOTOS ═══════════ */
+  var photos = [];
+  var camStream = null;
+
+  function updateCount() {
+    $('photoCount').textContent = photos.length + ' / ' + MAX_PHOTOS;
+    $('photoCount').style.color = photos.length >= MAX_PHOTOS ? '#f87171' : '';
+  }
+
+  function renderGallery() {
+    var g = $('gallery');
+    g.innerHTML = '';
+    for (var i = 0; i < photos.length; i++) {
+      (function (idx) {
+        var div = document.createElement('div');
+        div.className = 'thumb';
+        var img = document.createElement('img');
+        img.src = photos[idx];
+        img.alt = 'Photo ' + (idx + 1);
+        var del = document.createElement('button');
+        del.className = 'del';
+        del.textContent = '\u2715';
+        del.title = 'Remove';
+        del.addEventListener('click', function () {
+          photos.splice(idx, 1);
+          renderGallery();
+          updateCount();
+        });
+        div.appendChild(img);
+        div.appendChild(del);
+        g.appendChild(div);
+      })(i);
+    }
+  }
+
+  function addPhoto(dataUrl) {
+    if (photos.length >= MAX_PHOTOS) { toast('Max 15 photos!'); return; }
+    photos.push(dataUrl);
+    renderGallery();
+    updateCount();
+  }
+
+  function resizeImage(dataUrl, maxSize, cb) {
+    var img = new Image();
+    img.onload = function () {
+      var scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      var w = Math.round(img.width * scale);
+      var h = Math.round(img.height * scale);
+      var canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = function () { toast('Could not read image'); };
+    img.src = dataUrl;
+  }
+
+  /* camera */
+  $('camStart').addEventListener('click', function () {
+    if (camStream) {
+      camStream.getTracks().forEach(function (t) { t.stop(); });
+      camStream = null;
+      $('camVideo').classList.remove('live');
+      $('camVideo').srcObject = null;
+      $('camHint').style.display = '';
+      $('camCapture').disabled = true;
+      $('camStart').innerHTML = '&#x1F4F7; Start camera';
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast('Camera not supported in this browser');
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(function (stream) {
+        camStream = stream;
+        $('camVideo').srcObject = stream;
+        $('camVideo').classList.add('live');
+        $('camHint').style.display = 'none';
+        $('camCapture').disabled = false;
+        $('camStart').innerHTML = '&#x23F9; Stop camera';
+      })
+      .catch(function () {
+        toast('Camera access denied');
+      });
+  });
+
+  $('camCapture').addEventListener('click', function () {
+    var v = $('camVideo');
+    if (!camStream || !v.videoWidth) return;
+    var canvas = document.createElement('canvas');
+    var maxW = 800;
+    var scale = Math.min(1, maxW / v.videoWidth);
+    canvas.width = Math.round(v.videoWidth * scale);
+    canvas.height = Math.round(v.videoHeight * scale);
+    canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+    addPhoto(canvas.toDataURL('image/jpeg', 0.85));
+    toast('Photo captured!');
+  });
+
+  /* upload */
+  $('uploadBtn').addEventListener('click', function () { $('fileInput').click(); });
+  $('fileInput').addEventListener('change', function () {
+    var files = Array.prototype.slice.call(this.files);
+    var room = MAX_PHOTOS - photos.length;
+    if (files.length > room) {
+      toast('Max 15 photos — only ' + room + ' more fit');
+      files = files.slice(0, room);
+    }
+    var loaded = 0;
+    files.forEach(function (f) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        resizeImage(e.target.result, 640, function (small) {
+          addPhoto(small);
+        });
+      };
+      reader.readAsDataURL(f);
+    });
+    this.value = '';
+  });
+
+  $('clearPhotos').addEventListener('click', function () {
+    photos = [];
+    renderGallery();
+    updateCount();
+  });
+
+  /* vision analysis */
+  $('analyzeBtn').addEventListener('click', function () {
+    if (!photos.length) { toast('Add photos first'); return; }
+    var promptText = $('photoPrompt').value.trim() || 'Describe what is in these photos. Identify objects, plants, animals, or anything notable.';
+    $('analyzeBtn').disabled = true;
+    $('photoLoading').style.display = 'block';
+    $('photoResult').classList.remove('show');
+
+    var content = [{ type: 'text', text: promptText }];
+    for (var i = 0; i < photos.length; i++) {
+      content.push({ type: 'image_url', image_url: { url: photos[i] } });
+    }
+
+    fetch(VISION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + VISION_KEY,
+        'HTTP-Referer': 'https://ai-app-one-kappa.vercel.app/',
+        'X-Title': 'Nexus AI'
+      },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        messages: [{ role: 'user', content: content }],
+        temperature: 0.4
+      })
+    })
+    .then(function (res) {
+      if (!res.ok) return res.text().then(function (t) { throw new Error('API ' + res.status + ': ' + t.slice(0, 150)); });
+      return res.json();
+    })
+    .then(function (json) {
+      var out = json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
+      $('photoResult').textContent = out || '(no answer)';
+      $('photoResult').classList.add('show');
+    })
+    .catch(function (err) {
+      $('photoResult').textContent = 'Error: ' + err.message;
+      $('photoResult').classList.add('show');
+      console.error('Vision error:', err);
+    })
+    .finally(function () {
+      $('analyzeBtn').disabled = false;
+      $('photoLoading').style.display = 'none';
+    });
+  });
 
   /* ═══════════ VOICE ═══════════ */
   var micBtn = $('micBtn');
@@ -640,7 +856,7 @@
   $('clearTranscript').addEventListener('click', function () {
     transcriptBox.textContent = '';
     transcriptBox.classList.remove('show');
-    micStatus.textContent = 'Click the mic and speak — Groq Whisper transcribes it.';
+    micStatus.textContent = 'Click the mic and speak \u2014 Groq Whisper transcribes it.';
   });
 
   /* ═══════════ QUIZ ═══════════ */
@@ -727,7 +943,7 @@
 
   $('quizSubmit').addEventListener('click', function () {
     if (!quizData) return;
-    if (quizAnswered) { toast('Already checked — start a new quiz'); return; }
+    if (quizAnswered) { toast('Already checked \u2014 start a new quiz'); return; }
     var correct = 0;
     var total = quizData.questions.length;
     for (var i = 0; i < total; i++) {
@@ -838,6 +1054,13 @@
     if (!trOutput.textContent || trOutput.textContent === 'Translating...') { toast('Nothing to copy'); return; }
     copyText(trOutput.textContent);
   });
+
+  /* debug/test hooks */
+  window.nexusDebug = {
+    photos: photos,
+    addPhoto: addPhoto,
+    renderGallery: renderGallery
+  };
 })();
 </script>
 <script src="qr.js"></script>
