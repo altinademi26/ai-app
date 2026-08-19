@@ -290,7 +290,7 @@
       <div class="card chat-card">
         <div class="chat-top">
           <span class="dot"></span>
-          <div><b>Nexus</b><br><small>llama-3.3-70b &#8226; online</small></div>
+          <div><b>Nexus</b><br><small>gpt-oss-20b &#8226; online</small></div>
         </div>
         <div id="messages">
           <div class="msg bot">Hey! I'm Nexus on Groq LPU chips. Ask me anything. &#x26A1;</div>
@@ -427,7 +427,7 @@
   var GROQ_KEY = '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';
   var GROQ_CHAT = 'https://api.groq.com/openai/v1/chat/completions';
   var GROQ_STT = 'https://api.groq.com/openai/v1/audio/transcriptions';
-  var MODEL = 'llama-3.3-70b-versatile';
+  var MODEL = 'openai/gpt-oss-20b';
   var VISION_URL = 'https://openrouter.ai/api/v1/chat/completions';
   var VISION_KEY = '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';
   var VISION_MODEL = 'google/gemini-2.5-flash';
@@ -530,8 +530,7 @@
       var reader = res.body.getReader();
       var decoder = new TextDecoder();
       var full = '';
-      botDiv.classList.remove('thinking');
-      botDiv.textContent = '';
+      var started = false;
 
       function pump() {
         return reader.read().then(function (r) {
@@ -552,6 +551,11 @@
               var json = JSON.parse(data);
               var delta = json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content;
               if (delta) {
+                if (!started) {
+                  started = true;
+                  botDiv.classList.remove('thinking');
+                  botDiv.textContent = '';
+                }
                 full += delta;
                 botDiv.textContent = full;
                 messages.scrollTop = messages.scrollHeight;
